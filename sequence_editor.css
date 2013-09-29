@@ -1,0 +1,45 @@
+
+#container {
+    position: relative;
+}
+
+.seqed {
+    position: relative;
+    width: 500px;
+    height: 600px;
+    font-family: monospace;
+    border: 1px solid black;
+    white-space: nowrap;
+    background-color: gray;
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+}
+/*
+.seqed .scroller {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 30px;    
+}
+*/
+
+.seqed .text {
+    position: relative;
+    width: 100%;
+
+}
+
+.seqed .text .word {
+    position: relative;
+    display: block;
+    float: left;
+    background-color: #77AA33;
+    margin-left: 10px;
+}
+
+.seqed .line_numbers {
+
+}
+
