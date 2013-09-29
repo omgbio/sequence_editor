@@ -4,13 +4,13 @@ function setCaret(el, start) {
     if(!el) {
         return false
     }
+    el.focus();
     var range = document.createRange();
     var sel = window.getSelection();
     range.setStart(el.childNodes[0], start);
     range.collapse(true);
     sel.removeAllRanges();
     sel.addRange(range);
-    el.focus();
 }
 
 function getCaretIndex() {
@@ -106,7 +106,9 @@ var SequenceEditor = {
             var editor = document.createElement('DIV');
             editor.className = 'seqed';
 //            el.tabindex = "1";
+//            editor.spellcheck = false;
             editor.contentEditable = true;
+
             //  https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement.contentEditable?redirectlocale=en-US&redirectslug=Web%2FAPI%2FElement.contentEditable
 
             this.bind_event_listeners(editor);
@@ -117,6 +119,9 @@ var SequenceEditor = {
             
             $(this.container).append(editor);
 
+            // ugly, but i guess that's how you do it
+            $('body').attr('spellcheck', false);
+
             this.text = $(text);
             this.editor = $(editor);
         };
@@ -125,8 +130,10 @@ var SequenceEditor = {
 
             $(el).bind('keydown', this.on_keydown.bind(this));
             $(el).bind('keyup', this.on_keyup.bind(this));
-
             $(el).bind('focus', this.on_focus.bind(this));
+            $(el).bind('paste', this.on_paste.bind(this));
+            $(el).bind('click', this.on_click.bind(this));
+            $(el).bind('mousedown', this.on_mousedown.bind(this));
 
         };         
 
@@ -138,10 +145,34 @@ var SequenceEditor = {
         };
 
         this.on_focus = function(e) {
+            console.log("got focus");
 
         };
 
+        this.on_mousedown = function(e) {
+
+        };
+
+        this.on_click = function(e) {
+            if(!$(e.target).hasClass('word')) {
+                var word = this.editor.find('.word').first();
+                if(!word || (word.length < 1)) {
+                    return true;
+                }
+                setCaret(word[0], 0);
+            }
+        };
+
+
+        this.on_paste = function(e) {
+            var str = e.originalEvent.clipboardData.getData('text/plain');
+            this.insert_string(str);
+            e.preventDefault();
+        };
+
         this.on_keydown = function(e) {
+
+            var pass = false;
             var keycode = e.which;
             if(this.is_modifier_key(keycode)) {
                 e.preventDefault();
@@ -154,12 +185,21 @@ var SequenceEditor = {
             // to pass through to the browser
             if(e.ctrlKey) {
                 if(char == 'R') {
-                    return true;
+                    pass = true;
+                } else if(char == 'V') {
+                    pass = true;
+                } else if(char == 'T') {
+                    pass = true;
+                } else if(char == 'W') {
+                    pass = true;
                 }
             }
-            e.preventDefault();
 
-            this.insert_char(0, char);
+            if(!pass) {
+                e.preventDefault();
+                this.insert_char(char);
+            }
+
         };
 
         this.on_keyup = function(e) {
@@ -184,7 +224,13 @@ var SequenceEditor = {
             if(!$(el).hasClass('word')) {
                 el = $(el).parents('.word');
                 if(!el || (el.length == 0) || !el.parents(this.className)) {
-                    return null;
+
+                    el = this.text.find('.word');
+                    if(!el || (el.length < 1)) {
+                        return null;
+                    }
+                    el = el.first();
+                    setCaret(el[0], 0);
                 }
                 return el;
             }
@@ -221,19 +267,34 @@ var SequenceEditor = {
                 }
             }.bind(this));
 
+//            var added_new = false;
             if(excess.length > 0) {
                 var word_new = this.new_word(excess);
                 $(lastw).after(word_new);
-
+//                added_new = true;
             }
-            if(caret_index >= this.p.word_length) {
+
+            // we added an element and it was the last
+            if((getCaretElement() == lastw[0])) {
                 setCaret(word.next()[0], 1);
             } else {
-                setCaret(word[0], caret_index);
+                if(caret_index >= this.p.word_length) {
+                    setCaret(word.next()[0], 0);
+                } else {
+                    setCaret(word[0], caret_index);
+                }
             }
         };
 
-        this.insert_char = function(location, ch) {
+        // TODO this sucks
+        this.insert_string = function(str) {
+            var i;
+            for(i=0; i < str.length; i++) {
+                this.insert_char(str[i]);
+            }
+        };
+
+        this.insert_char = function(ch) {
             if(!this.is_char_allowed(ch)) {
                 return false;
             }
@@ -249,7 +310,8 @@ var SequenceEditor = {
                     this.difficult_insert(ch, getCaretIndex(), $(el));
 
                 } else {
-                    html += ch;
+                    var ci = getCaretIndex();
+                    html = html.substr(0, ci) + ch + html.substr(ci);
                     el.html(html);
                     setCaret(el[0], html.length);
                 }
@@ -260,6 +322,7 @@ var SequenceEditor = {
             var el = document.createElement('DIV');
             el.className = 'word';
             el.innerHTML = contents;
+
             return el;
         };
 
