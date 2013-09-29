@@ -13,6 +13,17 @@ function setCaret(el, start) {
     el.focus();
 }
 
+function getCaretIndex() {
+    var sel = window.getSelection();
+    if(!sel) {
+        return null;
+    }
+    if(!sel.isCollapsed) {
+        return null;
+    }
+    return sel.getRangeAt(0).endOffset;
+}
+
 function getCaretElement() {
     var sel = window.getSelection();
     if(!sel) {
@@ -180,24 +191,68 @@ var SequenceEditor = {
             return el;
         };
 
-        this.insert_char = function(location, char) {
-            if(!this.is_char_allowed(char)) {
+        this.difficult_insert = function(ch, caret_index, word) {
+            
+            var h;
+            var keep;
+            var excess;// = ch;
+            console.log('caret: ' + caret_index);
+            h = word.html().substr(0, caret_index) + ch + word.html().substr(caret_index)
+            excess = h.substr(this.p.word_length);
+            word.html(h.substr(0, this.p.word_length));
+
+            var lastw = word;
+            var words = word.nextAll()
+            caret_index += 1;
+
+            $.each(words, function(i, w) {
+                w = $(w);
+                console.log('next ' + w.html());
+                h = excess + w.html();
+                keep = h.substr(0, this.p.word_length);
+                if(keep.length == 0) {
+                    w.remove();
+                    return true;
+                } else {
+                    w.html(keep);
+                }
+                excess = h.substr(this.p.word_length);
+                lastw = w;
+                if(excess.length <= 0) {
+                    return true;
+                }
+            }.bind(this));
+            console.log("lastw: " + lastw.html());
+            console.log("excess: " + excess);
+            if(excess.length > 0) {
+                var word_new = this.new_word(excess);
+                $(lastw).after(word_new);
+
+            }
+            if(caret_index >= this.p.word_length) {
+                setCaret(word.next()[0], 1);
+            } else {
+                setCaret(word[0], caret_index);
+            }
+        };
+
+        this.insert_char = function(location, ch) {
+            if(!this.is_char_allowed(ch)) {
                 return false;
             }
             console.log('insert char');
             var el = this.get_selected_word();
             if(!el) {
-                el = this.new_word(char);
+                el = this.new_word(ch);
                 this.text.append(el);
                 setCaret(el, 1);
             } else {
-                var html = el.html();
+                var html = $(el).html();
                 if(html.length >= this.p.word_length) {
-                    var el_new = this.new_word(char);
-                    $(el).after(el_new);
-                    setCaret(el_new, 1);
+                    this.difficult_insert(ch, getCaretIndex(), $(el));
+
                 } else {
-                    html += char;
+                    html += ch;
                     el.html(html);
                     setCaret(el[0], html.length);
                 }
