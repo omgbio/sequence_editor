@@ -10,7 +10,7 @@
     font-family: monospace;
     border: 1px solid black;
     white-space: nowrap;
-    background-color: gray;
+    background-color: white;
     padding-top: 10px;
     padding-right: 10px;
     padding-bottom: 10px;
@@ -35,8 +35,9 @@
     position: relative;
     display: block;
     float: left;
-    background-color: #77AA33;
+    background-color: #9999EE;
     margin-left: 10px;
+    margin-bottom: 5px;
 }
 
 .seqed .line_numbers {
